@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'django_filters',
     # Local apps
     'api',
+    'apps.users.apps.UsersConfig',
 ]
 
 MIDDLEWARE = [
@@ -214,3 +215,5 @@ LOGGING = {
         },
     },
 }
+
+

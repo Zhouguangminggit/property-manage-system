@@ -37,7 +37,6 @@ schema_view = get_schema_view(
 
 # API URL patterns
 api_patterns = [
-    path('auth/', include('apps.authentication.urls')),
     path('users/', include('apps.users.urls')),
 ]
 

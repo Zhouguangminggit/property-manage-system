@@ -26,19 +26,26 @@ router.beforeEach(async(to, from, next) => {
       next({ path: '/' })
       NProgress.done()
     } else {
-      const hasGetUserInfo = store.getters.name
-      if (hasGetUserInfo) {
+      const hasUserType = store.getters.userType
+      if (hasUserType) {
         next()
       } else {
         try {
           // get user info
-          await store.dispatch('user/getInfo')
+          const { user_type } = await store.dispatch('user/getInfo')
+          
+          // 根据用户类型生成可访问路由
+          const accessRoutes = await store.dispatch('permission/generateRoutes', user_type)
+          
+          // 动态添加可访问路由
+          router.addRoutes(accessRoutes)
 
-          next()
+          // hack方法 确保addRoutes已完成
+          next({ ...to, replace: true })
         } catch (error) {
           // remove token and go to login page to re-login
           await store.dispatch('user/resetToken')
-          Message.error(error || 'Has Error')
+          Message.error(error || '出现错误，请重新登录')
           next(`/login?redirect=${to.path}`)
           NProgress.done()
         }

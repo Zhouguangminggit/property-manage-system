@@ -37,7 +37,6 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     'apps.common',
-    'apps.authentication',
     'apps.users',
 ]
 
@@ -198,3 +197,6 @@ EMAIL_HOST_PASSWORD = None  # Set in local settings
 INTERNAL_IPS = [
     '127.0.0.1',
 ] 
+
+# 指定自定义用户模型
+AUTH_USER_MODEL = 'users.User'

@@ -6,7 +6,10 @@ const getDefaultState = () => {
   return {
     token: getToken(),
     name: '',
-    avatar: ''
+    avatar: '',
+    userType: '',
+    employeeId: '',
+    phone: ''
   }
 }
 
@@ -24,18 +27,35 @@ const mutations = {
   },
   SET_AVATAR: (state, avatar) => {
     state.avatar = avatar
+  },
+  SET_USER_TYPE: (state, type) => {
+    state.userType = type
+  },
+  SET_EMPLOYEE_ID: (state, id) => {
+    state.employeeId = id
+  },
+  SET_PHONE: (state, phone) => {
+    state.phone = phone
   }
 }
 
 const actions = {
   // user login
   login({ commit }, userInfo) {
-    const { username, password } = userInfo
     return new Promise((resolve, reject) => {
-      login({ username: username.trim(), password: password }).then(response => {
-        const { data } = response
-        commit('SET_TOKEN', data.token)
-        setToken(data.token)
+      login(userInfo).then(response => {
+        const { access, user } = response
+        commit('SET_TOKEN', access)
+        commit('SET_NAME', user.first_name || user.username)
+        commit('SET_USER_TYPE', user.user_type)
+        commit('SET_AVATAR', 'https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif')
+        if (user.employee_id) {
+          commit('SET_EMPLOYEE_ID', user.employee_id)
+        }
+        if (user.phone) {
+          commit('SET_PHONE', user.phone)
+        }
+        setToken(access)
         resolve()
       }).catch(error => {
         reject(error)
@@ -46,17 +66,25 @@ const actions = {
   // get user info
   getInfo({ commit, state }) {
     return new Promise((resolve, reject) => {
-      getInfo(state.token).then(response => {
+      getInfo().then(response => {
         const { data } = response
 
         if (!data) {
           return reject('Verification failed, please Login again.')
         }
 
-        const { name, avatar } = data
+        const { first_name, username, user_type, employee_id, phone } = data
 
-        commit('SET_NAME', name)
-        commit('SET_AVATAR', avatar)
+        commit('SET_NAME', first_name || username)
+        commit('SET_USER_TYPE', user_type)
+        commit('SET_AVATAR', 'https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif')
+        if (employee_id) {
+          commit('SET_EMPLOYEE_ID', employee_id)
+        }
+        if (phone) {
+          commit('SET_PHONE', phone)
+        }
+
         resolve(data)
       }).catch(error => {
         reject(error)

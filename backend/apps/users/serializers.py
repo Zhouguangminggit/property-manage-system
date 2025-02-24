@@ -8,10 +8,21 @@ User = get_user_model()
 class UserSerializer(BaseModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 
-                 'is_active', 'date_joined', 'last_login')
+        fields = (
+            'id', 'username', 'email', 'first_name', 'last_name', 
+            'is_active', 'date_joined', 'last_login', 'user_type',
+            'employee_id', 'phone'
+        )
         read_only_fields = ('date_joined', 'last_login')
 
+class AdminLoginSerializer(serializers.Serializer):
+    employee_id = serializers.CharField(required=True)
+    name = serializers.CharField(required=True)
+    password = serializers.CharField(required=True, write_only=True)
+
+class OwnerLoginSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True)
+    password = serializers.CharField(required=True, write_only=True)
 
 class UserCreateSerializer(BaseModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
@@ -19,7 +30,7 @@ class UserCreateSerializer(BaseModelSerializer):
 
     class Meta:
         model = User
-        fields = ('username', 'password', 'password2', 'email', 'first_name', 'last_name')
+        fields = ('username', 'password', 'password2', 'email', 'first_name', 'last_name', 'user_type', 'employee_id', 'phone')
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:

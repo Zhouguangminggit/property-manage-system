@@ -1,25 +1,60 @@
 <template>
   <div class="login-container">
     <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form" auto-complete="on" label-position="left">
-
       <div class="title-container">
-        <h3 class="title">Login Form</h3>
+        <h3 class="title">物业管理系统登录</h3>
       </div>
 
-      <el-form-item prop="username">
-        <span class="svg-container">
-          <svg-icon icon-class="user" />
-        </span>
-        <el-input
-          ref="username"
-          v-model="loginForm.username"
-          placeholder="Username"
-          name="username"
-          type="text"
-          tabindex="1"
-          auto-complete="on"
-        />
-      </el-form-item>
+      <el-tabs v-model="loginType" @tab-click="handleTabClick">
+        <el-tab-pane label="业主登录" name="owner">
+          <el-form-item prop="username">
+            <span class="svg-container">
+              <svg-icon icon-class="user" />
+            </span>
+            <el-input
+              ref="username"
+              v-model="loginForm.username"
+              placeholder="用户名"
+              name="username"
+              type="text"
+              tabindex="1"
+              auto-complete="on"
+            />
+          </el-form-item>
+        </el-tab-pane>
+        
+        <el-tab-pane label="管理员登录" name="admin">
+          <el-form-item prop="employeeId">
+            <span class="svg-container">
+              <svg-icon icon-class="user" />
+            </span>
+            <el-input
+              ref="employeeId"
+              v-model="loginForm.employeeId"
+              placeholder="工号"
+              name="employeeId"
+              type="text"
+              tabindex="1"
+              auto-complete="on"
+            />
+          </el-form-item>
+
+          <el-form-item prop="name">
+            <span class="svg-container">
+              <svg-icon icon-class="user" />
+            </span>
+            <el-input
+              ref="name"
+              v-model="loginForm.name"
+              placeholder="姓名"
+              name="name"
+              type="text"
+              tabindex="2"
+              auto-complete="on"
+            />
+          </el-form-item>
+        </el-tab-pane>
+      </el-tabs>
 
       <el-form-item prop="password">
         <span class="svg-container">
@@ -30,9 +65,9 @@
           ref="password"
           v-model="loginForm.password"
           :type="passwordType"
-          placeholder="Password"
+          placeholder="密码"
           name="password"
-          tabindex="2"
+          tabindex="3"
           auto-complete="on"
           @keyup.enter.native="handleLogin"
         />
@@ -41,44 +76,56 @@
         </span>
       </el-form-item>
 
-      <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="handleLogin">Login</el-button>
-
-      <div class="tips">
-        <span style="margin-right:20px;">username: admin</span>
-        <span> password: any</span>
-      </div>
-
+      <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="handleLogin">
+        登录
+      </el-button>
     </el-form>
   </div>
 </template>
 
 <script>
-import { validUsername } from '@/utils/validate'
-
 export default {
   name: 'Login',
   data() {
-    const validateUsername = (rule, value, callback) => {
-      if (!validUsername(value)) {
-        callback(new Error('Please enter the correct user name'))
-      } else {
-        callback()
-      }
-    }
     const validatePassword = (rule, value, callback) => {
       if (value.length < 6) {
-        callback(new Error('The password can not be less than 6 digits'))
+        callback(new Error('密码不能少于6位'))
       } else {
         callback()
       }
     }
+
+    // 根据登录类型验证必填字段
+    const validateRequired = (rule, value, callback) => {
+      if (this.loginType === 'owner' && rule.field === 'username') {
+        if (!value) {
+          callback(new Error('请输入用户名'))
+        } else {
+          callback()
+        }
+      } else if (this.loginType === 'admin') {
+        if ((rule.field === 'employeeId' || rule.field === 'name') && !value) {
+          callback(new Error(`请输入${rule.field === 'employeeId' ? '工号' : '姓名'}`))
+        } else {
+          callback()
+        }
+      } else {
+        callback()
+      }
+    }
+
     return {
+      loginType: 'owner',
       loginForm: {
-        username: 'admin',
-        password: '111111'
+        username: '',
+        employeeId: '',
+        name: '',
+        password: ''
       },
       loginRules: {
-        username: [{ required: true, trigger: 'blur', validator: validateUsername }],
+        username: [{ validator: validateRequired, trigger: 'blur' }],
+        employeeId: [{ validator: validateRequired, trigger: 'blur' }],
+        name: [{ validator: validateRequired, trigger: 'blur' }],
         password: [{ required: true, trigger: 'blur', validator: validatePassword }]
       },
       loading: false,
@@ -105,19 +152,29 @@ export default {
         this.$refs.password.focus()
       })
     },
+    handleTabClick() {
+      this.$refs.loginForm.clearValidate()
+      this.loginForm.password = ''
+      if (this.loginType === 'owner') {
+        this.loginForm.employeeId = ''
+        this.loginForm.name = ''
+      } else {
+        this.loginForm.username = ''
+      }
+    },
     handleLogin() {
       this.$refs.loginForm.validate(valid => {
         if (valid) {
           this.loading = true
-          this.$store.dispatch('user/login', this.loginForm).then(() => {
+          this.$store.dispatch('user/login', {
+            ...this.loginForm,
+            loginType: this.loginType
+          }).then(() => {
             this.$router.push({ path: this.redirect || '/' })
             this.loading = false
           }).catch(() => {
             this.loading = false
           })
-        } else {
-          console.log('error submit!!')
-          return false
         }
       })
     }

@@ -1,15 +1,93 @@
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from apps.common.views import ModelViewSet
 from .serializers import (
-    UserSerializer, UserCreateSerializer,
-    UserUpdateSerializer, ChangePasswordSerializer
+    UserSerializer, UserCreateSerializer, UserUpdateSerializer, 
+    ChangePasswordSerializer, AdminLoginSerializer, OwnerLoginSerializer
 )
+import logging
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
+
+class LoginView(APIView):
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+        login_type = request.data.get('login_type')
+        logger.info(f"Login attempt - type: {login_type}, data: {request.data}")
+        
+        if login_type == 'admin':
+            serializer = AdminLoginSerializer(data=request.data)
+            if serializer.is_valid():
+                employee_id = serializer.validated_data['employee_id']
+                name = serializer.validated_data['name']
+                password = serializer.validated_data['password']
+                
+                try:
+                    user = User.objects.get(
+                        employee_id=employee_id,
+                        first_name=name,
+                        user_type='admin'
+                    )
+                    if user.check_password(password):
+                        refresh = RefreshToken.for_user(user)
+                        return Response({
+                            'refresh': str(refresh),
+                            'access': str(refresh.access_token),
+                            'user': UserSerializer(user).data
+                        })
+                except User.DoesNotExist:
+                    pass
+                    
+                return Response(
+                    {'error': '工号、姓名或密码错误'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+        else:
+            serializer = OwnerLoginSerializer(data=request.data)
+            if serializer.is_valid():
+                username = serializer.validated_data['username']
+                password = serializer.validated_data['password']
+                
+                try:
+                    user = User.objects.get(
+                        username=username,
+                        user_type='owner'
+                    )
+                    if user.check_password(password):
+                        refresh = RefreshToken.for_user(user)
+                        return Response({
+                            'refresh': str(refresh),
+                            'access': str(refresh.access_token),
+                            'user': UserSerializer(user).data
+                        })
+                except User.DoesNotExist:
+                    pass
+                    
+                return Response(
+                    {'error': '用户名或密码错误'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+                
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class LogoutView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        try:
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"message": "登出成功"})
+        except Exception:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
 class UserViewSet(ModelViewSet):
     queryset = User.objects.all()
@@ -46,7 +124,8 @@ class UserViewSet(ModelViewSet):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['get'])
-    def me(self, request):
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def info(self, request):
+        """获取当前用户信息"""
         serializer = self.get_serializer(request.user)
         return Response(serializer.data) 

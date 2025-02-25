@@ -19,11 +19,16 @@ class LoginView(APIView):
     permission_classes = (AllowAny,)
 
     def post(self, request):
-        login_type = request.data.get('login_type')
+        login_type = request.data.get('loginType')
         logger.info(f"Login attempt - type: {login_type}, data: {request.data}")
         
         if login_type == 'admin':
-            serializer = AdminLoginSerializer(data=request.data)
+            serializer = AdminLoginSerializer(data={
+                'employee_id': request.data.get('employeeId', ''),
+                'name': request.data.get('name', ''),
+                'password': request.data.get('password', '')
+            })
+            
             if serializer.is_valid():
                 employee_id = serializer.validated_data['employee_id']
                 name = serializer.validated_data['name']
@@ -49,8 +54,17 @@ class LoginView(APIView):
                     {'error': '工号、姓名或密码错误'},
                     status=status.HTTP_401_UNAUTHORIZED
                 )
-        else:
-            serializer = OwnerLoginSerializer(data=request.data)
+            else:
+                return Response(
+                    {'error': '请求数据无效', 'details': serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        elif login_type == 'owner':
+            serializer = OwnerLoginSerializer(data={
+                'username': request.data.get('username', ''),
+                'password': request.data.get('password', '')
+            })
+            
             if serializer.is_valid():
                 username = serializer.validated_data['username']
                 password = serializer.validated_data['password']
@@ -74,8 +88,16 @@ class LoginView(APIView):
                     {'error': '用户名或密码错误'},
                     status=status.HTTP_401_UNAUTHORIZED
                 )
-                
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response(
+                    {'error': '请求数据无效', 'details': serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            return Response(
+                {'error': '不支持的登录类型'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class LogoutView(APIView):
     permission_classes = (IsAuthenticated,)

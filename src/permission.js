@@ -33,10 +33,8 @@ router.beforeEach(async(to, from, next) => {
         try {
           // get user info
           const { user_type } = await store.dispatch('user/getInfo')
-          
           // 根据用户类型生成可访问路由
           const accessRoutes = await store.dispatch('permission/generateRoutes', user_type)
-          
           // 动态添加可访问路由
           router.addRoutes(accessRoutes)
 

@@ -1,5 +1,6 @@
 <template>
   <div class="login-container">
+    {{ loginType }}
     <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form" auto-complete="on" label-position="left">
       <div class="title-container">
         <h3 class="title">物业管理系统登录</h3>
@@ -22,7 +23,6 @@
             />
           </el-form-item>
         </el-tab-pane>
-        
         <el-tab-pane label="管理员登录" name="admin">
           <el-form-item prop="employeeId">
             <span class="svg-container">
